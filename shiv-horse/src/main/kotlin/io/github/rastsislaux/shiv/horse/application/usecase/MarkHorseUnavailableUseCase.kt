@@ -1,0 +1,35 @@
+package io.github.rastsislaux.shiv.horse.application.usecase
+
+import io.github.rastsislaux.shiv.core.application.ApplicationComponent
+import io.github.rastsislaux.shiv.core.application.hex.Command
+import io.github.rastsislaux.shiv.core.application.hex.CommandUseCase
+import io.github.rastsislaux.shiv.core.application.hex.GetOutputPort
+import io.github.rastsislaux.shiv.core.application.hex.SaveOutputPort
+import io.github.rastsislaux.shiv.core.application.hex.TargetsResource
+import io.github.rastsislaux.shiv.horse.application.HorseMapper
+import io.github.rastsislaux.shiv.horse.application.HorseNotFoundException
+import io.github.rastsislaux.shiv.horse.application.HorseResult
+import io.github.rastsislaux.shiv.horse.domain.HorseId
+import io.github.rastsislaux.shiv.horse.domain.SphericalHorse
+
+interface MarkHorseUnavailableUseCase :
+    CommandUseCase<MarkHorseUnavailableUseCase.MarkHorseUnavailableCommand, HorseResult> {
+    data class MarkHorseUnavailableCommand(
+        override val resourceId: HorseId
+    ) : Command, TargetsResource<HorseId>
+}
+
+@ApplicationComponent
+class MarkHorseUnavailableUseCaseImpl(
+    private val getHorse: GetOutputPort<SphericalHorse, HorseId>,
+    private val saveHorse: SaveOutputPort<SphericalHorse>,
+) : MarkHorseUnavailableUseCase {
+    override fun execute(input: MarkHorseUnavailableUseCase.MarkHorseUnavailableCommand): HorseResult {
+        val horse = getHorse.get(input.resourceId) ?: throw HorseNotFoundException(input.resourceId)
+        horse.markUnavailable()
+
+        return HorseMapper.mapToResult(
+            saveHorse.save(horse),
+        )
+    }
+}

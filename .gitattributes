@@ -1,0 +1,5 @@
+shiv-core/gradlew text eol=lf
+shiv-horse/gradlew text eol=lf
+shiv-horse-service/gradlew text eol=lf
+*.bat text eol=crlf
+*.jar binary
