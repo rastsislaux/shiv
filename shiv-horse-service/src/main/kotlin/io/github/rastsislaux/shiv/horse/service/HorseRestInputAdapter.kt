@@ -1,7 +1,6 @@
 package io.github.rastsislaux.shiv.horse.service
 
-import io.github.rastsislaux.shiv.core.application.hex.PageResult
-import io.github.rastsislaux.shiv.core.application.hex.Result
+import io.github.rastsislaux.shiv.platform.spring.web.PageDto
 import io.github.rastsislaux.shiv.horse.application.HorseResult
 import io.github.rastsislaux.shiv.horse.application.usecase.CreateHorseUseCase
 import io.github.rastsislaux.shiv.horse.application.usecase.DeleteHorseUseCase
@@ -18,6 +17,7 @@ import io.github.rastsislaux.shiv.horse.domain.HorseRadius
 import io.github.rastsislaux.shiv.horse.domain.HorseStatus
 import io.github.rastsislaux.shiv.horse.domain.MinimumPressure
 import org.springframework.http.HttpStatus
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -66,6 +66,7 @@ class HorseRestInputAdapter(
     }
 
     @PostMapping("/search")
+    @Transactional(readOnly = true)
     fun searchHorse(@RequestBody query: SearchHorseUseCase.SearchHorseQuery): PageDto<HorseDto> {
         val result = searchHorseUseCase.execute(query)
         return PageDto.from(result, HorseDto::from)
@@ -139,26 +140,6 @@ data class UpdateHorseRequestDto(
 data class UpdateHorseAvailabilityRequestDto(
     val isAvailable: Boolean,
 )
-
-data class PageDto<T>(
-    val items: List<T>,
-    val page: Int,
-    val size: Int,
-    val totalItems: Long,
-    val totalPages: Int,
-) {
-    companion object {
-        fun <I : Result, O> from(page: PageResult<I>, itemMapper: (I) -> O): PageDto<O> {
-            return PageDto(
-                items = page.items.map(itemMapper),
-                page = page.page,
-                size = page.size,
-                totalItems = page.totalItems,
-                totalPages = page.totalPages,
-            )
-        }
-    }
-}
 
 data class HorseDto(
     val id: String,

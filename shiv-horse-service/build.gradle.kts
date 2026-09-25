@@ -33,6 +33,7 @@ dependencies {
     // Domain & Application
     implementation("io.github.rastsislaux:shiv-core:1.0-SNAPSHOT")
     implementation("io.github.rastsislaux:shiv-horse:1.0-SNAPSHOT")
+    implementation("io.github.rastsislaux:shiv-spring:1.0-SNAPSHOT")
 
     // Other stuff
     developmentOnly("org.springframework.boot:spring-boot-devtools")

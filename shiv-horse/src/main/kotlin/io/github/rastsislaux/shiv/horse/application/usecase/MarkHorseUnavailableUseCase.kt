@@ -1,6 +1,7 @@
 package io.github.rastsislaux.shiv.horse.application.usecase
 
 import io.github.rastsislaux.shiv.core.application.ApplicationComponent
+import io.github.rastsislaux.shiv.core.application.TransactionOutputPort
 import io.github.rastsislaux.shiv.core.application.hex.Command
 import io.github.rastsislaux.shiv.core.application.hex.CommandUseCase
 import io.github.rastsislaux.shiv.core.application.hex.GetOutputPort
@@ -23,13 +24,16 @@ interface MarkHorseUnavailableUseCase :
 class MarkHorseUnavailableUseCaseImpl(
     private val getHorse: GetOutputPort<SphericalHorse, HorseId>,
     private val saveHorse: SaveOutputPort<SphericalHorse>,
+    private val transactional: TransactionOutputPort,
 ) : MarkHorseUnavailableUseCase {
-    override fun execute(input: MarkHorseUnavailableUseCase.MarkHorseUnavailableCommand): HorseResult {
-        val horse = getHorse.get(input.resourceId) ?: throw HorseNotFoundException(input.resourceId)
-        horse.markUnavailable()
+    override fun execute(input: MarkHorseUnavailableUseCase.MarkHorseUnavailableCommand): HorseResult =
+        transactional.execute {
+            val horse =
+                getHorse.get(input.resourceId) ?: throw HorseNotFoundException(input.resourceId)
+            horse.markUnavailable()
 
-        return HorseMapper.mapToResult(
-            saveHorse.save(horse),
-        )
-    }
+            HorseMapper.mapToResult(
+                saveHorse.save(horse),
+            )
+        }
 }

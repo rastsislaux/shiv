@@ -1,6 +1,7 @@
 package io.github.rastsislaux.shiv.horse.application.usecase
 
 import io.github.rastsislaux.shiv.core.application.ApplicationComponent
+import io.github.rastsislaux.shiv.core.application.TransactionOutputPort
 import io.github.rastsislaux.shiv.core.application.hex.Command
 import io.github.rastsislaux.shiv.core.application.hex.CommandUseCase
 import io.github.rastsislaux.shiv.core.application.hex.GetOutputPort
@@ -30,16 +31,19 @@ interface UpdateHorseUseCase : CommandUseCase<UpdateHorseUseCase.UpdateHorseComm
 class UpdateHorseUseCaseImpl(
     private val getHorse: GetOutputPort<SphericalHorse, HorseId>,
     private val saveHorse: SaveOutputPort<SphericalHorse>,
+    private val transactional: TransactionOutputPort,
 ) : UpdateHorseUseCase {
-    override fun execute(input: UpdateHorseUseCase.UpdateHorseCommand): HorseResult {
-        val horse = getHorse.get(input.resourceId) ?: throw HorseNotFoundException(input.resourceId)
-        horse.rename(input.name)
-        horse.changeMass(input.mass)
-        horse.changeRadius(input.radius)
-        horse.changeMinimumPressure(input.minimumPressure)
+    override fun execute(input: UpdateHorseUseCase.UpdateHorseCommand): HorseResult =
+        transactional.execute {
+            val horse =
+                getHorse.get(input.resourceId) ?: throw HorseNotFoundException(input.resourceId)
+            horse.rename(input.name)
+            horse.changeMass(input.mass)
+            horse.changeRadius(input.radius)
+            horse.changeMinimumPressure(input.minimumPressure)
 
-        return HorseMapper.mapToResult(
-            saveHorse.save(horse)
-        )
-    }
+            HorseMapper.mapToResult(
+                saveHorse.save(horse)
+            )
+        }
 }

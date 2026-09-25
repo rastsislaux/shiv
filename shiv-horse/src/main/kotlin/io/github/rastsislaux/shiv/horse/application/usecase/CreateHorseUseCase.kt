@@ -1,6 +1,7 @@
 package io.github.rastsislaux.shiv.horse.application.usecase
 
 import io.github.rastsislaux.shiv.core.application.ApplicationComponent
+import io.github.rastsislaux.shiv.core.application.TransactionOutputPort
 import io.github.rastsislaux.shiv.core.application.hex.Command
 import io.github.rastsislaux.shiv.core.application.hex.CommandUseCase
 import io.github.rastsislaux.shiv.core.application.hex.SaveOutputPort
@@ -24,17 +25,19 @@ interface CreateHorseUseCase : CommandUseCase<CreateHorseUseCase.CreateHorseComm
 @ApplicationComponent
 class CreateHorseUseCaseImpl(
     private val saveOutputPort: SaveOutputPort<SphericalHorse>,
+    private val transactional: TransactionOutputPort,
 ) : CreateHorseUseCase {
-    override fun execute(input: CreateHorseUseCase.CreateHorseCommand): HorseResult {
-        val horse = SphericalHorse.create(
-            name = input.name,
-            radius = input.radius,
-            mass = input.mass,
-            minimumPressure = input.minimumPressure,
-        )
+    override fun execute(input: CreateHorseUseCase.CreateHorseCommand): HorseResult =
+        transactional.execute {
+            val horse = SphericalHorse.create(
+                name = input.name,
+                radius = input.radius,
+                mass = input.mass,
+                minimumPressure = input.minimumPressure,
+            )
 
-        return HorseMapper.mapToResult(
-            saveOutputPort.save(horse)
-        )
-    }
+            HorseMapper.mapToResult(
+                saveOutputPort.save(horse)
+            )
+        }
 }

@@ -1,6 +1,8 @@
 package io.github.rastsislaux.shiv.horse.application.usecase
 
 import io.github.rastsislaux.shiv.core.application.ApplicationComponent
+import io.github.rastsislaux.shiv.core.application.TransactionMode
+import io.github.rastsislaux.shiv.core.application.TransactionOutputPort
 import io.github.rastsislaux.shiv.core.application.hex.GetOutputPort
 import io.github.rastsislaux.shiv.core.application.hex.Query
 import io.github.rastsislaux.shiv.core.application.hex.QueryUseCase
@@ -17,11 +19,14 @@ interface GetHorseUseCase : QueryUseCase<GetHorseUseCase.GetHorseQuery, HorseRes
 
 @ApplicationComponent
 class GetHorseUseCaseImpl(
-    private val getHorse: GetOutputPort<SphericalHorse, HorseId>
+    private val getHorse: GetOutputPort<SphericalHorse, HorseId>,
+    private val transactional: TransactionOutputPort,
 ) : GetHorseUseCase {
-    override fun execute(input: GetHorseUseCase.GetHorseQuery): HorseResult {
-        val horse = getHorse.get(input.resourceId) ?: throw HorseNotFoundException(input.resourceId)
-        return HorseMapper.mapToResult(horse)
-    }
+    override fun execute(input: GetHorseUseCase.GetHorseQuery): HorseResult =
+        transactional.execute(mode = TransactionMode.READ_ONLY) {
+            val horse =
+                getHorse.get(input.resourceId) ?: throw HorseNotFoundException(input.resourceId)
+            HorseMapper.mapToResult(horse)
+        }
 }
 

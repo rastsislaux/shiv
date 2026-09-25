@@ -1,6 +1,7 @@
 package io.github.rastsislaux.shiv.horse.application.usecase
 
 import io.github.rastsislaux.shiv.core.application.ApplicationComponent
+import io.github.rastsislaux.shiv.core.application.TransactionOutputPort
 import io.github.rastsislaux.shiv.core.application.hex.Command
 import io.github.rastsislaux.shiv.core.application.hex.CommandUseCase
 import io.github.rastsislaux.shiv.core.application.hex.DeleteOutputPort
@@ -21,10 +22,13 @@ interface DeleteHorseUseCase : CommandUseCase<DeleteHorseUseCase.DeleteHorseComm
 class DeleteHorseUseCaseImpl(
     private val getHorse: GetOutputPort<SphericalHorse, HorseId>,
     private val deleteHorse: DeleteOutputPort<SphericalHorse>,
+    private val transactional: TransactionOutputPort,
 ) : DeleteHorseUseCase {
-    override fun execute(input: DeleteHorseUseCase.DeleteHorseCommand): NoResult {
-        val horse = getHorse.get(input.resourceId) ?: throw HorseNotFoundException(input.resourceId)
-        deleteHorse.delete(horse)
-        return NoResult
-    }
+    override fun execute(input: DeleteHorseUseCase.DeleteHorseCommand): NoResult =
+        transactional.execute {
+            val horse =
+                getHorse.get(input.resourceId) ?: throw HorseNotFoundException(input.resourceId)
+            deleteHorse.delete(horse)
+            NoResult
+        }
 }

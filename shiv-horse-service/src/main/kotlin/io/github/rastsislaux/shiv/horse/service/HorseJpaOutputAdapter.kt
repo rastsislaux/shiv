@@ -1,5 +1,9 @@
 package io.github.rastsislaux.shiv.horse.service
 
+import io.github.rastsislaux.io.github.rastsislaux.shiv.platform.spring.jpa.JpaGetOutputAdapter
+import io.github.rastsislaux.io.github.rastsislaux.shiv.platform.spring.jpa.JpaHardDeleteOutputAdapter
+import io.github.rastsislaux.io.github.rastsislaux.shiv.platform.spring.jpa.JpaSaveOutputAdapter
+import io.github.rastsislaux.io.github.rastsislaux.shiv.platform.spring.jpa.JpaSearchOutputAdapter
 import io.github.rastsislaux.shiv.core.application.hex.DeleteOutputPort
 import io.github.rastsislaux.shiv.core.application.hex.GetOutputPort
 import io.github.rastsislaux.shiv.core.application.hex.SaveOutputPort
@@ -52,50 +56,32 @@ interface SphericalHorseRepository : JpaRepository<SphericalHorseEntity, String>
 @Component
 class HorseJpaAdapter(
     private val repository: SphericalHorseRepository,
-) : SaveOutputPort<SphericalHorse>,
-    GetOutputPort<SphericalHorse, HorseId>,
-    SearchOutputPort<SphericalHorse, SearchHorseUseCase.SearchHorseQuery>,
-    DeleteOutputPort<SphericalHorse> {
-    override fun save(value: SphericalHorse): SphericalHorse {
-        val entity = toEntity(value)
-        val saved = repository.save(entity)
-        return toDomain(saved)
-    }
-
-    override fun get(id: HorseId): SphericalHorse? {
-        val entity = repository.findById(id.value.toString()).getOrNull()
-        return entity?.let { toDomain(it) }
-    }
-
-    override fun search(
-        query: SearchHorseUseCase.SearchHorseQuery,
-        page: SearchOutputPort.PageRequest
-    ): SearchOutputPort.Page<SphericalHorse> {
-        val nameFilter = query.name?.value
-        val pageRequest = PageRequest.of(
-            query.page,
-            query.size
-        )
-
-        val entities = if (nameFilter != null) {
-            repository.findAllByNameContaining(nameFilter, pageRequest)
-        } else {
-            repository.findAll(pageRequest)
+) : SaveOutputPort<SphericalHorse> by JpaSaveOutputAdapter(
+        repository = repository,
+        toEntityMapper = ::toEntity,
+        toDomainMapper = ::toDomain
+    ),
+    GetOutputPort<SphericalHorse, HorseId> by JpaGetOutputAdapter(
+        repository = repository,
+        idMapper = { id -> id.value.toString() },
+        entityMapper = ::toDomain
+    ),
+    SearchOutputPort<SphericalHorse, SearchHorseUseCase.SearchHorseQuery> by JpaSearchOutputAdapter(
+        repository = repository,
+        toDomainMapper = ::toDomain,
+        search = { repository, query, pageable ->
+            val nameFilter = query.name?.value
+            if (nameFilter.isNullOrBlank()) {
+                repository.findAll(pageable)
+            } else {
+                repository.findAllByNameContaining(nameFilter, pageable)
+            }
         }
-
-        return SearchOutputPort.Page(
-            items = entities.content.map { toDomain(it) },
-            page = entities.pageable.pageNumber,
-            size = entities.pageable.pageSize,
-            totalItems = entities.totalElements,
-            totalPages = entities.totalPages,
-        )
-    }
-
-    override fun delete(value: SphericalHorse) {
-        repository.deleteById(value.id.value.toString())
-    }
-
+    ),
+    DeleteOutputPort<SphericalHorse> by JpaHardDeleteOutputAdapter(
+        repository = repository,
+        idMapper = { id -> id.value.toString() }
+    ) {
     companion object {
         fun toEntity(horse: SphericalHorse) = SphericalHorseEntity(
             id = horse.id.value.toString(),
@@ -105,7 +91,7 @@ class HorseJpaAdapter(
             minimumPressure = horse.minimumPressure.pascals,
             status = horse.status
         )
-        
+
         fun toDomain(horse: SphericalHorseEntity) = SphericalHorse.rehydrate(
             id = HorseId(UUID.fromString(horse.id)),
             name = HorseName(horse.name),
